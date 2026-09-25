@@ -7,12 +7,12 @@ This repository contains a complete, manually reviewed Czech translation of the 
 ## Status
 
 - Source file: `apps/desktop/src/i18n/cs.ts`
-- Based on Hermes Agent commit: `e629c900a`
-- Translation entries: 3,221
+- Based on upstream English catalog blob: `65c7a3b44e5960af5be0f5e4f7229a94b8168031`
+- Translation entries: 4,564
 - Missing entries against that source revision: 0
 - Extra entries against that source revision: 0
-- Verified on Windows 10 with the native Hermes Desktop build
-- SHA-256 of `cs.ts`: `0652d25702d4c1e12471fe223ae34f0e34a55a5f959b222b031e13343dae87f0`
+- TypeScript syntax, locale structure, interpolation variables, and function parameters validated
+- SHA-256 of `cs.ts`: `98796b2dd33bbe3987ca47285fdb399d32b6e3a88b3ac3bf8d3d98223c436674`
 
 The translation uses `defineLocale()`, so future keys that are not yet present can fall back to English when used inside a compatible Hermes source tree.
 
