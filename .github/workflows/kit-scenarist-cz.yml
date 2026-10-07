@@ -236,7 +236,6 @@ jobs:
               if (!$tc.Contains($p[0])) { throw "VN rename patch point not found: $($p[0])" }
               $tc = $tc.Replace($p[0], $p[1])
           }
-          $tc = $tc.Replace('QObject::tr("Title:", "ScenarioBlockStyle")', 'QStringLiteral("→ SKOK NA SCÉNU:")')
           [IO.File]::WriteAllText($templateCpp, $tc, [Text.UTF8Encoding]::new($false))
 
           $fast = "$env:GITHUB_WORKSPACE\upstream\src\bin\scenarist-desktop\UserInterfaceLayer\Scenario\ScenarioTextEdit\ScenarioFastFormatWidget.cpp"
