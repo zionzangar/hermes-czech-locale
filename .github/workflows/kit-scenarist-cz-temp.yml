@@ -150,6 +150,16 @@ jobs:
           $app = $app.Replace('setApplicationVersion("0.7.2 rc 15");', 'setApplicationVersion("0.7.2 rc 15 CZ");')
           [IO.File]::WriteAllText($appPath, $app, [Text.UTF8Encoding]::new($false))
 
+          # The bundled Hunspell library is built statically. The original project
+          # does not propagate HUNSPELL_STATIC to the desktop target with newer MSVC,
+          # which makes hunspell.hxx declare imported DLL symbols at final link.
+          $desktopPro = "$env:GITHUB_WORKSPACE\upstream\src\bin\scenarist-desktop.pro"
+          $pro = Get-Content -Raw -Encoding UTF8 $desktopPro
+          if (!$pro.Contains('DEFINES += HUNSPELL_STATIC')) {
+              $pro = $pro.Replace('CONFIG += c++11 warn_on', "CONFIG += c++11 warn_on`r`nDEFINES += HUNSPELL_STATIC")
+          }
+          [IO.File]::WriteAllText($desktopPro, $pro, [Text.UTF8Encoding]::new($false))
+
       - name: Build release
         shell: cmd
         working-directory: upstream/src
