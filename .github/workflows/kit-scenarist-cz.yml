@@ -1,0 +1,131 @@
+name: Build KIT Scenarist Czech
+
+on:
+  push:
+    branches:
+      - kit-scenarist-cz-build
+    paths:
+      - "kit-build/**"
+      - ".github/workflows/kit-scenarist-cz.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout build inputs
+        uses: actions/checkout@v4
+
+      - name: Checkout KIT Scenarist
+        uses: actions/checkout@v4
+        with:
+          repository: dimkanovikov/KITScenarist
+          ref: develop
+          submodules: recursive
+          path: upstream
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install Qt 5.14.2
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "5.14.2"
+          host: "windows"
+          target: "desktop"
+          arch: "win64_msvc2017_64"
+          modules: "qtmultimedia qtsvg qtwebengine qtwebchannel qtdeclarative qttools"
+          cache: true
+
+      - name: Prepare Czech translation
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          Expand-Archive -Path "$env:GITHUB_WORKSPACE\kit-build\KITScenarist_CZ_localization.zip" -DestinationPath "$env:GITHUB_WORKSPACE\kit-build\cz" -Force
+
+          $core = "$env:GITHUB_WORKSPACE\upstream\src\bin\scenarist-core"
+          $trans = "$core\Resources\Translations"
+
+          & "$env:GITHUB_WORKSPACE\kit-build\cz\KITScenarist_CZ_build.ps1" `
+            -EnglishTs "$trans\Scenarist_en.ts" `
+            -ExistingCs "$trans\Scenarist_cs.ts" `
+            -OutputTs "$trans\Scenarist_cs.ts" `
+            -NoDownload
+
+          if (!(Test-Path "$trans\Scenarist_cs.qm")) {
+            lrelease "$trans\Scenarist_cs.ts" -qm "$trans\Scenarist_cs.qm"
+          }
+
+          $qmake = (Get-Command qmake).Source
+          $qtRoot = Split-Path (Split-Path $qmake -Parent) -Parent
+          $qtTranslations = Join-Path $qtRoot "translations"
+          Copy-Item (Join-Path $qtTranslations "qt_cs.qm") "$trans\qt_cs.qm" -Force
+          Copy-Item (Join-Path $qtTranslations "qtbase_cs.qm") "$trans\qtbase_cs.qm" -Force
+
+          $qrcPath = "$core\Resources\Translations.qrc"
+          $qrc = Get-Content -Raw -Encoding UTF8 $qrcPath
+          $insert = @"
+                  <file>Translations/Scenarist_cs.qm</file>
+                  <file>Translations/qt_cs.qm</file>
+                  <file>Translations/qtbase_cs.qm</file>
+          "@
+          $qrc = $qrc -replace '</qresource>', ($insert + [Environment]::NewLine + '    </qresource>')
+          Set-Content -Path $qrcPath -Value $qrc -Encoding UTF8
+
+          $appPath = "$env:GITHUB_WORKSPACE\upstream\src\bin\scenarist-desktop\Application.cpp"
+          $app = Get-Content -Raw -Encoding UTF8 $appPath
+          $forceCzech = @"
+
+              // Czech localization build: always use Czech UI.
+              translationSuffix = "cs";
+              qtTranslationSuffix = "cs";
+              qtBaseTranslationSuffix = "cs";
+              currentLanguage = QLocale::Czech;
+
+          "@
+          $app = $app -replace '    QLocale::setDefault\(QLocale\(currentLanguage\)\);', ($forceCzech + '    QLocale::setDefault(QLocale(currentLanguage));')
+          $app = $app -replace 'setApplicationVersion\("0\.7\.2 rc 15"\);', 'setApplicationVersion("0.7.2 rc 15 CZ");'
+          Set-Content -Path $appPath -Value $app -Encoding UTF8
+
+      - name: Build release
+        shell: cmd
+        working-directory: upstream/src
+        run: |
+          qmake Scenarist.pro "CONFIG+=release"
+          nmake
+
+      - name: Package portable build
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $bin = "$env:GITHUB_WORKSPACE\upstream\build\Release\bin\scenarist-desktop"
+          if (!(Test-Path "$bin\Scenarist.exe")) { throw "Scenarist.exe was not built" }
+
+          windeployqt --release --no-translations "$bin\Scenarist.exe"
+
+          $qtTranslations = Join-Path (Split-Path (Split-Path (Get-Command qmake).Source -Parent) -Parent) "translations"
+          New-Item -ItemType Directory -Force "$bin\translations" | Out-Null
+          Copy-Item "$qtTranslations\qt_cs.qm" "$bin\translations\qt_cs.qm" -Force
+
+          @"
+          KIT Scenarist 0.7.2 rc15 - česká verze
+          Překlad aplikace je zabudovaný přímo v Scenarist.exe.
+          Tato složka je přenosná a nevyžaduje instalaci Qt ani Visual Studia.
+          "@ | Set-Content -Encoding UTF8 "$bin\CZ_README.txt"
+
+          Compress-Archive -Path "$bin\*" -DestinationPath "$env:GITHUB_WORKSPACE\KIT_Scenarist_CZ_Windows_x64.zip" -Force
+
+      - name: Upload Czech build
+        uses: actions/upload-artifact@v4
+        with:
+          name: KIT_Scenarist_CZ_Windows_x64
+          path: KIT_Scenarist_CZ_Windows_x64.zip
+          if-no-files-found: error
+          retention-days: 7
