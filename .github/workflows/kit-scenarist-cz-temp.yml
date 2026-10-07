@@ -43,7 +43,7 @@ jobs:
           host: "windows"
           target: "desktop"
           arch: "win64_msvc2017_64"
-          modules: "qtmultimedia qtsvg qtwebengine qtwebchannel qtdeclarative qttools"
+          modules: "qtwebengine"
           cache: true
 
       - name: Prepare Czech translation
