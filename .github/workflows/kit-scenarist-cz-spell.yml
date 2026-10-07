@@ -141,7 +141,10 @@ jobs:
 
           $spellH = "$core\3rd_party\Widgets\SpellCheckTextEdit\SpellChecker.h"
           $h = Get-Content -Raw -Encoding UTF8 $spellH
-          $h = $h -replace '(\s+Danish)(\s*\n\s*};)', '$1,' + [Environment]::NewLine + '        Czech$2'
+          $needleH = "        Danish" + [Environment]::NewLine + "    };"
+          $replaceH = "        Danish," + [Environment]::NewLine + "        Czech" + [Environment]::NewLine + "    };"
+          if (!$h.Contains($needleH)) { throw "SpellChecker enum patch point not found" }
+          $h = $h.Replace($needleH, $replaceH)
           [IO.File]::WriteAllText($spellH, $h, [Text.UTF8Encoding]::new($false))
 
           $spellCpp = "$core\3rd_party\Widgets\SpellCheckTextEdit\SpellChecker.cpp"
