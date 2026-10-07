@@ -284,36 +284,16 @@ jobs:
 
           # VN export: print chapter headers in normal script/PDF output.
           $exporter = "$core\BusinessLayer\Export\AbstractExporter.cpp"
-          $ex = Get-Content -Raw -Encoding UTF8 $exporter
-          $oldScriptList = @'
-                  ScenarioBlockStyle::Title,
-                  ScenarioBlockStyle::Note,
-                  ScenarioBlockStyle::Transition,
-                  ScenarioBlockStyle::Lyrics };
-          '@
-          $newScriptList = @'
-                  ScenarioBlockStyle::Title,
-                  ScenarioBlockStyle::Note,
-                  ScenarioBlockStyle::Transition,
-                  ScenarioBlockStyle::Lyrics,
-                  ScenarioBlockStyle::FolderHeader };
-          '@
-          if (!$ex.Contains($oldScriptList)) { throw "Exporter script-print list patch point not found" }
-          $ex = $ex.Replace($oldScriptList, $newScriptList)
+          $ex = (Get-Content -Raw -Encoding UTF8 $exporter).Replace("`r`n", "`n")
+          $oldScriptTail = "              ScenarioBlockStyle::Transition,`n              ScenarioBlockStyle::Lyrics };`n"
+          $newScriptTail = "              ScenarioBlockStyle::Transition,`n              ScenarioBlockStyle::Lyrics,`n              ScenarioBlockStyle::FolderHeader };`n"
+          if (!$ex.Contains($oldScriptTail)) { throw "Exporter script-print list patch point not found" }
+          $ex = $ex.Replace($oldScriptTail, $newScriptTail)
 
-          $oldInvisible = @'
-              static QList<ScenarioBlockStyle::Type> s_invisibleBlockTypes =
-                  { ScenarioBlockStyle::NoprintableText,
-                    ScenarioBlockStyle::FolderFooter,
-                    ScenarioBlockStyle::FolderHeader };
-          '@
-          $newInvisible = @'
-              static QList<ScenarioBlockStyle::Type> s_invisibleBlockTypes =
-                  { ScenarioBlockStyle::NoprintableText,
-                    ScenarioBlockStyle::FolderFooter };
-          '@
-          if (!$ex.Contains($oldInvisible)) { throw "Exporter invisible-list patch point not found" }
-          $ex = $ex.Replace($oldInvisible, $newInvisible)
+          $oldInvisibleTail = "          { ScenarioBlockStyle::NoprintableText,`n            ScenarioBlockStyle::FolderFooter,`n            ScenarioBlockStyle::FolderHeader };`n"
+          $newInvisibleTail = "          { ScenarioBlockStyle::NoprintableText,`n            ScenarioBlockStyle::FolderFooter };`n"
+          if (!$ex.Contains($oldInvisibleTail)) { throw "Exporter invisible-list patch point not found" }
+          $ex = $ex.Replace($oldInvisibleTail, $newInvisibleTail)
           [IO.File]::WriteAllText($exporter, $ex, [Text.UTF8Encoding]::new($false))
 
           $dictDir = "$env:GITHUB_WORKSPACE\czech-hunspell"
