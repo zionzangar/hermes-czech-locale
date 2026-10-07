@@ -290,8 +290,8 @@ jobs:
           if (!$ex.Contains($oldScriptTail)) { throw "Exporter script-print list patch point not found" }
           $ex = $ex.Replace($oldScriptTail, $newScriptTail)
 
-          $oldInvisibleTail = "          { ScenarioBlockStyle::NoprintableText,`n            ScenarioBlockStyle::FolderFooter,`n            ScenarioBlockStyle::FolderHeader };`n"
-          $newInvisibleTail = "          { ScenarioBlockStyle::NoprintableText,`n            ScenarioBlockStyle::FolderFooter };`n"
+          $oldInvisibleTail = "            { ScenarioBlockStyle::NoprintableText,`n              ScenarioBlockStyle::FolderFooter,`n              ScenarioBlockStyle::FolderHeader };`n"
+          $newInvisibleTail = "            { ScenarioBlockStyle::NoprintableText,`n              ScenarioBlockStyle::FolderFooter };`n"
           if (!$ex.Contains($oldInvisibleTail)) { throw "Exporter invisible-list patch point not found" }
           $ex = $ex.Replace($oldInvisibleTail, $newInvisibleTail)
           [IO.File]::WriteAllText($exporter, $ex, [Text.UTF8Encoding]::new($false))
