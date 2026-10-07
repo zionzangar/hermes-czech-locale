@@ -1,4 +1,4 @@
-name: Build KIT Scenarist Czech Spellcheck Click Fix
+name: Build KIT Scenarist CZ VN Safe Test
 
 on:
   push:
@@ -87,6 +87,33 @@ jobs:
               messages += 1
           if messages != 1202 or len(seen) != 1016 or len(translations) != 1016:
               raise RuntimeError(f"Unexpected translation structure: messages={messages}, unique={len(seen)}, translations={len(translations)}")
+
+          vn_names = {
+              "Scene Heading": "Název scény",
+              "Scene Characters": "Skok na scénu",
+              "Action": "Dění",
+              "Character": "Postava",
+              "Parenthetical": "Tech. popis",
+              "Dialog": "Dialog",
+              "Transition": "SFX / Zvuk",
+              "Shot": "Obraz",
+              "Noprintable Text": "Interní logika",
+              "Folder": "Kapitola",
+              "Scene Description": "Popis scény",
+              "Lyrics": "Herní volba",
+          }
+          for context in root.findall("context"):
+              if (context.findtext("name") or "") != "BusinessLogic::ScenarioBlockStyle":
+                  continue
+              for msg in context.findall("message"):
+                  src = msg.findtext("source") or ""
+                  if src in vn_names:
+                      tr = msg.find("translation")
+                      if tr is None:
+                          tr = ET.SubElement(msg, "translation")
+                      tr.attrib.pop("type", None)
+                      tr.text = vn_names[src]
+
           tmp = cs_path.with_suffix(".tmp")
           tree.write(tmp, encoding="utf-8", xml_declaration=True)
           text = tmp.read_text(encoding="utf-8")
@@ -213,37 +240,38 @@ jobs:
           $hl = $hl.Replace($oldActiveWordBlock, "")
           [IO.File]::WriteAllText($highlighter, $hl, [Text.UTF8Encoding]::new($false))
 
-          # Visual Novel test edition
-          $templateCpp = "$core\BusinessLayer\ScenarioDocument\ScenarioTemplate.cpp"
-          $tc = Get-Content -Raw -Encoding UTF8 $templateCpp
-
-          $pairs = @(
-              @('QApplication::translate("BusinessLogic::ScenarioBlockStyle", "Scene Heading")','QStringLiteral("Název scény")'),
-              @('QApplication::translate("BusinessLogic::ScenarioBlockStyle", "Scene Characters")','QStringLiteral("Postavy ve scéně")'),
-              @('QApplication::translate("BusinessLogic::ScenarioBlockStyle", "Action")','QStringLiteral("Dění")'),
-              @('QApplication::translate("BusinessLogic::ScenarioBlockStyle", "Character")','QStringLiteral("Postava")'),
-              @('QApplication::translate("BusinessLogic::ScenarioBlockStyle", "Parenthetical")','QStringLiteral("Tech. popis")'),
-              @('QApplication::translate("BusinessLogic::ScenarioBlockStyle", "Dialog")','QStringLiteral("Dialog")'),
-              @('QApplication::translate("BusinessLogic::ScenarioBlockStyle", "Transition")','QStringLiteral("SFX / Zvuk")'),
-              @('QApplication::translate("BusinessLogic::ScenarioBlockStyle", "Shot")','QStringLiteral("Obraz")'),
-              @('QApplication::translate("BusinessLogic::ScenarioBlockStyle", "Title")','QStringLiteral("Skok na scénu")'),
-              @('QApplication::translate("BusinessLogic::ScenarioBlockStyle", "Noprintable Text")','QStringLiteral("Interní logika")'),
-              @('QApplication::translate("BusinessLogic::ScenarioBlockStyle", "Folder")','QStringLiteral("Kapitola")'),
-              @('QApplication::translate("BusinessLogic::ScenarioBlockStyle", "Scene Description")','QStringLiteral("Popis scény")'),
-              @('QApplication::translate("BusinessLogic::ScenarioBlockStyle", "Lyrics")','QStringLiteral("Herní volba")')
-          )
-          foreach ($p in $pairs) {
-              if (!$tc.Contains($p[0])) { throw "VN rename patch point not found: $($p[0])" }
-              $tc = $tc.Replace($p[0], $p[1])
-          }
-          [IO.File]::WriteAllText($templateCpp, $tc, [Text.UTF8Encoding]::new($false))
-
+          # Visual Novel quick-format panel: use only safe existing block types.
           $fast = "$env:GITHUB_WORKSPACE\upstream\src\bin\scenarist-desktop\UserInterfaceLayer\Scenario\ScenarioTextEdit\ScenarioFastFormatWidget.cpp"
           $fc = Get-Content -Raw -Encoding UTF8 $fast
-          $fastNeedle = '          << ScenarioBlockStyle::Lyrics;'
-          $fastReplacement = '          << ScenarioBlockStyle::Lyrics' + [Environment]::NewLine + '          << ScenarioBlockStyle::FolderHeader' + [Environment]::NewLine + '          << ScenarioBlockStyle::SceneDescription;'
-          if (!$fc.Contains($fastNeedle)) { throw "Fast format patch point not found" }
-          $fc = $fc.Replace($fastNeedle, $fastReplacement)
+          $oldFast = @'
+              types << ScenarioBlockStyle::SceneHeading
+                    << ScenarioBlockStyle::SceneCharacters
+                    << ScenarioBlockStyle::Action
+                    << ScenarioBlockStyle::Character
+                    << ScenarioBlockStyle::Dialogue
+                    << ScenarioBlockStyle::Parenthetical
+                    << ScenarioBlockStyle::Title
+                    << ScenarioBlockStyle::Note
+                    << ScenarioBlockStyle::Transition
+                    << ScenarioBlockStyle::NoprintableText
+                    << ScenarioBlockStyle::Lyrics;
+          '@
+          $newFast = @'
+              types << ScenarioBlockStyle::FolderHeader
+                    << ScenarioBlockStyle::SceneHeading
+                    << ScenarioBlockStyle::SceneDescription
+                    << ScenarioBlockStyle::Action
+                    << ScenarioBlockStyle::Character
+                    << ScenarioBlockStyle::Dialogue
+                    << ScenarioBlockStyle::Parenthetical
+                    << ScenarioBlockStyle::Note
+                    << ScenarioBlockStyle::Transition
+                    << ScenarioBlockStyle::Lyrics
+                    << ScenarioBlockStyle::SceneCharacters
+                    << ScenarioBlockStyle::NoprintableText;
+          '@
+          if (!$fc.Contains($oldFast)) { throw "Fast-format safe patch point not found" }
+          $fc = $fc.Replace($oldFast, $newFast)
           [IO.File]::WriteAllText($fast, $fc, [Text.UTF8Encoding]::new($false))
 
           $dictDir = "$env:GITHUB_WORKSPACE\czech-hunspell"
@@ -277,12 +305,12 @@ jobs:
           Česká kontrola pravopisu je součástí balíčku.
           V Nastavení > Kontrola pravopisu zvolte Čeština.
           "@ | Set-Content -Encoding UTF8 "$bin\CZ_README.txt"
-          Compress-Archive -Path "$bin\*" -DestinationPath "$env:GITHUB_WORKSPACE\KIT_Scenarist_CZ_VN_TEST.zip" -Force
+          Compress-Archive -Path "$bin\*" -DestinationPath "$env:GITHUB_WORKSPACE\KIT_Scenarist_CZ_VN_SAFE_TEST.zip" -Force
 
       - name: Upload Czech build
         uses: actions/upload-artifact@v4
         with:
-          name: KIT_Scenarist_CZ_VN_TEST
-          path: KIT_Scenarist_CZ_VN_TEST.zip
+          name: KIT_Scenarist_CZ_VN_SAFE_TEST
+          path: KIT_Scenarist_CZ_VN_SAFE_TEST.zip
           if-no-files-found: error
           retention-days: 7
