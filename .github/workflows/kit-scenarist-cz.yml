@@ -207,14 +207,8 @@ jobs:
           [IO.File]::WriteAllText($settingsMgr, $sm, [Text.UTF8Encoding]::new($false))
 
           $highlighter = "$core\3rd_party\Widgets\SpellCheckTextEdit\SpellCheckHighlighter.cpp"
-          $hl = Get-Content -Raw -Encoding UTF8 $highlighter
-          $oldActiveWordBlock = @'
-                      if (m_edited
-                              && positionInText <= m_cursorPosition
-                              && positionInText + wordToCheck.length() > m_cursorPosition) {
-                          continue;
-                      }
-          '@
+          $hl = (Get-Content -Raw -Encoding UTF8 $highlighter).Replace("`r`n", "`n")
+          $oldActiveWordBlock = "                    if (m_edited`n                            && positionInText <= m_cursorPosition`n                            && positionInText + wordToCheck.length() > m_cursorPosition) {`n                        continue;`n                    }`n"
           if (!$hl.Contains($oldActiveWordBlock)) { throw "Highlighter patch point not found" }
           $hl = $hl.Replace($oldActiveWordBlock, "")
           [IO.File]::WriteAllText($highlighter, $hl, [Text.UTF8Encoding]::new($false))
