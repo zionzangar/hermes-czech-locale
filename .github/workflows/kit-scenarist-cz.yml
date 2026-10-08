@@ -307,49 +307,39 @@ jobs:
           $templateDialog = "$env:GITHUB_WORKSPACE\upstream\src\bin\scenarist-desktop\UserInterfaceLayer\Settings\TemplateDialog.cpp"
           $td = (Get-Content -Raw -Encoding UTF8 $templateDialog).Replace("`r`n", "`n")
 
-          $oldDecorationSave = @'
-          if (m_ui->framingBrackets->isChecked()) {
-              m_blockStyle.setPrefix("(");
-              m_blockStyle.setPostfix(")");
-          } else {
-              m_blockStyle.setPrefix("");
-              m_blockStyle.setPostfix("");
-          }
+          $patternDecorationSave = 'if \(m_ui->framingBrackets->isChecked\(\)\) \{[\s\S]*?m_blockStyle\.setPostfix\(""\);\n        \}'
+          $replacementDecorationSave = @'
+        const bool standardBracketDecoration =
+                (m_blockStyle.prefix() == "(" && m_blockStyle.postfix() == ")");
+        const bool noDecoration = m_blockStyle.prefix().isEmpty() && m_blockStyle.postfix().isEmpty();
+        if (m_blockStyle.type() == ScenarioBlockStyle::SceneCharacters
+                && (standardBracketDecoration || noDecoration)) {
+            if (m_ui->framingBrackets->isChecked()) {
+                m_blockStyle.setPrefix("(");
+                m_blockStyle.setPostfix(")");
+            } else {
+                m_blockStyle.setPrefix("");
+                m_blockStyle.setPostfix("");
+            }
+        }
           '@
-          $newDecorationSave = @'
-          const bool standardBracketDecoration =
-                  (m_blockStyle.prefix() == "(" && m_blockStyle.postfix() == ")");
-          const bool noDecoration = m_blockStyle.prefix().isEmpty() && m_blockStyle.postfix().isEmpty();
-          if (m_blockStyle.type() == ScenarioBlockStyle::SceneCharacters
-                  && (standardBracketDecoration || noDecoration)) {
-              if (m_ui->framingBrackets->isChecked()) {
-                  m_blockStyle.setPrefix("(");
-                  m_blockStyle.setPostfix(")");
-              } else {
-                  m_blockStyle.setPrefix("");
-                  m_blockStyle.setPostfix("");
-              }
-          }
-          '@
-          if (!$td.Contains($oldDecorationSave)) { throw "Template decoration-save patch point not found" }
-          $td = $td.Replace($oldDecorationSave, $newDecorationSave)
+          $td2 = [regex]::Replace($td, $patternDecorationSave, $replacementDecorationSave)
+          if ($td2 -eq $td) { throw "Template decoration-save patch point not found" }
+          $td = $td2
 
-          $oldDecorationLoad = @'
-          m_ui->framingBrackets->setEnabled(activatedType == ScenarioBlockStyle::SceneCharacters);
-          m_ui->framingBrackets->setChecked(activatedBlockStyle.hasDecoration());
+          $patternDecorationLoad = 'm_ui->framingBrackets->setEnabled\(activatedType == ScenarioBlockStyle::SceneCharacters\);\n        m_ui->framingBrackets->setChecked\(activatedBlockStyle\.hasDecoration\(\)\);'
+          $replacementDecorationLoad = @'
+        const bool standardBracketDecoration =
+                activatedBlockStyle.prefix() == "(" && activatedBlockStyle.postfix() == ")";
+        const bool noDecoration = activatedBlockStyle.prefix().isEmpty() && activatedBlockStyle.postfix().isEmpty();
+        m_ui->framingBrackets->setEnabled(
+                activatedType == ScenarioBlockStyle::SceneCharacters
+                && (standardBracketDecoration || noDecoration));
+        m_ui->framingBrackets->setChecked(standardBracketDecoration);
           '@
-          $newDecorationLoad = @'
-          const bool standardBracketDecoration =
-                  activatedBlockStyle.prefix() == "(" && activatedBlockStyle.postfix() == ")";
-          const bool noDecoration = activatedBlockStyle.prefix().isEmpty() && activatedBlockStyle.postfix().isEmpty();
-          m_ui->framingBrackets->setEnabled(
-                  activatedType == ScenarioBlockStyle::SceneCharacters
-                  && (standardBracketDecoration || noDecoration));
-          m_ui->framingBrackets->setChecked(standardBracketDecoration);
-          '@
-          if (!$td.Contains($oldDecorationLoad)) { throw "Template decoration-load patch point not found" }
-          $td = $td.Replace($oldDecorationLoad, $newDecorationLoad)
-
+          $td2 = [regex]::Replace($td, $patternDecorationLoad, $replacementDecorationLoad)
+          if ($td2 -eq $td) { throw "Template decoration-load patch point not found" }
+          $td = $td2
           # Add lowercase option beside the existing uppercase checkbox.
           $uiFile = "$env:GITHUB_WORKSPACE\upstream\src\bin\scenarist-desktop\UserInterfaceLayer\Settings\TemplateDialog.ui"
           $ui = (Get-Content -Raw -Encoding UTF8 $uiFile).Replace("`r`n", "`n")
