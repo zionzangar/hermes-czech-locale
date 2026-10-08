@@ -343,16 +343,8 @@ jobs:
           # Add lowercase option beside the existing uppercase checkbox.
           $uiFile = "$env:GITHUB_WORKSPACE\upstream\src\bin\scenarist-desktop\UserInterfaceLayer\Settings\TemplateDialog.ui"
           $ui = (Get-Content -Raw -Encoding UTF8 $uiFile).Replace("`r`n", "`n")
-          $uiNeedle = @'
-          <item row="5" column="0">
-           <widget class="QCheckBox" name="uppercase">
-            <property name="text">
-             <string>Uppercase</string>
-            </property>
-           </widget>
-          </item>
-          '@
-          $uiReplace = @'
+          $uiPattern = '<item row="5" column="0">\s*<widget class="QCheckBox" name="uppercase">\s*<property name="text">\s*<string>Uppercase</string>\s*</property>\s*</widget>\s*</item>'
+          $uiReplacement = @'
           <item row="5" column="0">
            <widget class="QCheckBox" name="uppercase">
             <property name="text">
@@ -368,8 +360,9 @@ jobs:
            </widget>
           </item>
           '@
-          if (!$ui.Contains($uiNeedle)) { throw "Template lowercase UI patch point not found" }
-          $ui = $ui.Replace($uiNeedle, $uiReplace)
+          $ui2 = [regex]::Replace($ui, $uiPattern, $uiReplacement)
+          if ($ui2 -eq $ui) { throw "Template lowercase UI patch point not found" }
+          $ui = $ui2
           [IO.File]::WriteAllText($uiFile, $ui, [Text.UTF8Encoding]::new($false))
 
           # Lowercase/uppercase are mutually exclusive and shown in Czech.
