@@ -1,4 +1,4 @@
-name: Build KIT Scenarist CZ VN Safe Fix 4
+name: Build KIT Scenarist CZ VN Safe Fix 5
 
 on:
   push:
@@ -303,6 +303,148 @@ jobs:
           $ex = $ex.Replace($oldInvisibleTail, $newInvisibleTail)
           [IO.File]::WriteAllText($exporter, $ex, [Text.UTF8Encoding]::new($false))
 
+          # Preserve custom VN prefixes/postfixes when editing templates.
+          $templateDialog = "$env:GITHUB_WORKSPACE\upstream\src\bin\scenarist-desktop\UserInterfaceLayer\Settings\TemplateDialog.cpp"
+          $td = (Get-Content -Raw -Encoding UTF8 $templateDialog).Replace("`r`n", "`n")
+
+          $oldDecorationSave = @'
+          if (m_ui->framingBrackets->isChecked()) {
+              m_blockStyle.setPrefix("(");
+              m_blockStyle.setPostfix(")");
+          } else {
+              m_blockStyle.setPrefix("");
+              m_blockStyle.setPostfix("");
+          }
+          '@
+          $newDecorationSave = @'
+          const bool standardBracketDecoration =
+                  (m_blockStyle.prefix() == "(" && m_blockStyle.postfix() == ")");
+          const bool noDecoration = m_blockStyle.prefix().isEmpty() && m_blockStyle.postfix().isEmpty();
+          if (m_blockStyle.type() == ScenarioBlockStyle::SceneCharacters
+                  && (standardBracketDecoration || noDecoration)) {
+              if (m_ui->framingBrackets->isChecked()) {
+                  m_blockStyle.setPrefix("(");
+                  m_blockStyle.setPostfix(")");
+              } else {
+                  m_blockStyle.setPrefix("");
+                  m_blockStyle.setPostfix("");
+              }
+          }
+          '@
+          if (!$td.Contains($oldDecorationSave)) { throw "Template decoration-save patch point not found" }
+          $td = $td.Replace($oldDecorationSave, $newDecorationSave)
+
+          $oldDecorationLoad = @'
+          m_ui->framingBrackets->setEnabled(activatedType == ScenarioBlockStyle::SceneCharacters);
+          m_ui->framingBrackets->setChecked(activatedBlockStyle.hasDecoration());
+          '@
+          $newDecorationLoad = @'
+          const bool standardBracketDecoration =
+                  activatedBlockStyle.prefix() == "(" && activatedBlockStyle.postfix() == ")";
+          const bool noDecoration = activatedBlockStyle.prefix().isEmpty() && activatedBlockStyle.postfix().isEmpty();
+          m_ui->framingBrackets->setEnabled(
+                  activatedType == ScenarioBlockStyle::SceneCharacters
+                  && (standardBracketDecoration || noDecoration));
+          m_ui->framingBrackets->setChecked(standardBracketDecoration);
+          '@
+          if (!$td.Contains($oldDecorationLoad)) { throw "Template decoration-load patch point not found" }
+          $td = $td.Replace($oldDecorationLoad, $newDecorationLoad)
+
+          # Add lowercase option beside the existing uppercase checkbox.
+          $uiFile = "$env:GITHUB_WORKSPACE\upstream\src\bin\scenarist-desktop\UserInterfaceLayer\Settings\TemplateDialog.ui"
+          $ui = (Get-Content -Raw -Encoding UTF8 $uiFile).Replace("`r`n", "`n")
+          $uiNeedle = @'
+          <item row="5" column="0">
+           <widget class="QCheckBox" name="uppercase">
+            <property name="text">
+             <string>Uppercase</string>
+            </property>
+           </widget>
+          </item>
+          '@
+          $uiReplace = @'
+          <item row="5" column="0">
+           <widget class="QCheckBox" name="uppercase">
+            <property name="text">
+             <string>Uppercase</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="1">
+           <widget class="QCheckBox" name="lowercase">
+            <property name="text">
+             <string>Lowercase</string>
+            </property>
+           </widget>
+          </item>
+          '@
+          if (!$ui.Contains($uiNeedle)) { throw "Template lowercase UI patch point not found" }
+          $ui = $ui.Replace($uiNeedle, $uiReplace)
+          [IO.File]::WriteAllText($uiFile, $ui, [Text.UTF8Encoding]::new($false))
+
+          # Lowercase/uppercase are mutually exclusive and shown in Czech.
+          $setupNeedle = "    m_ui->setupUi(this);"
+          $setupReplace = @'
+    m_ui->setupUi(this);
+    m_ui->lowercase->setText(QStringLiteral("\u006d\u0061\u006c\u00e1 \u0070\u00ed\u0073\u006d\u0065\u006e\u0061"));
+    connect(m_ui->uppercase, &QCheckBox::toggled, this, [this](bool checked) {
+        if (checked) m_ui->lowercase->setChecked(false);
+    });
+    connect(m_ui->lowercase, &QCheckBox::toggled, this, [this](bool checked) {
+        if (checked) m_ui->uppercase->setChecked(false);
+    });
+'@
+          if (!$td.Contains($setupNeedle)) { throw "Template setup patch point not found" }
+          $td = $td.Replace($setupNeedle, $setupReplace)
+
+          $capSaveNeedle = "        blockFont.setCapitalization(m_ui->uppercase->isChecked() ? QFont::AllUppercase : QFont::MixedCase);"
+          $capSaveReplace = @'
+        if (m_ui->lowercase->isChecked()) {
+            blockFont.setCapitalization(QFont::AllLowercase);
+        } else if (m_ui->uppercase->isChecked()) {
+            blockFont.setCapitalization(QFont::AllUppercase);
+        } else {
+            blockFont.setCapitalization(QFont::MixedCase);
+        }
+'@
+          if (!$td.Contains($capSaveNeedle)) { throw "Template capitalization-save patch point not found" }
+          $td = $td.Replace($capSaveNeedle, $capSaveReplace)
+
+          $capLoadNeedle = "        m_ui->uppercase->setChecked(activatedBlockStyle.font().capitalization() == QFont::AllUppercase);"
+          $capLoadReplace = @'
+        m_ui->uppercase->setChecked(activatedBlockStyle.font().capitalization() == QFont::AllUppercase);
+        m_ui->lowercase->setChecked(activatedBlockStyle.font().capitalization() == QFont::AllLowercase);
+'@
+          if (!$td.Contains($capLoadNeedle)) { throw "Template capitalization-load patch point not found" }
+          $td = $td.Replace($capLoadNeedle, $capLoadReplace)
+          [IO.File]::WriteAllText($templateDialog, $td, [Text.UTF8Encoding]::new($false))
+
+          # Persist lowercase in .kitss (backward compatible; old uppercase attribute stays supported).
+          $scenarioTemplate = "$core\BusinessLayer\ScenarioDocument\ScenarioTemplate.cpp"
+          $st = (Get-Content -Raw -Encoding UTF8 $scenarioTemplate).Replace("`r`n", "`n")
+          $loadNeedle = '    m_font.setCapitalization(_blockAttributes.value("uppercase").toString() == "true"`n                             ? QFont::AllUppercase : QFont::MixedCase);'
+          $loadReplace = @'
+    if (_blockAttributes.value("lowercase").toString() == "true") {
+        m_font.setCapitalization(QFont::AllLowercase);
+    } else {
+        m_font.setCapitalization(_blockAttributes.value("uppercase").toString() == "true"
+                                 ? QFont::AllUppercase : QFont::MixedCase);
+    }
+'@
+          if (!$st.Contains($loadNeedle)) { throw "ScenarioTemplate lowercase-load patch point not found" }
+          $st = $st.Replace($loadNeedle, $loadReplace)
+
+          $saveNeedle = '            writer.writeAttribute("uppercase", toString(blockStyle.font().capitalization()`n                                                          == QFont::AllUppercase));'
+          $saveReplace = @'
+            writer.writeAttribute("uppercase", toString(blockStyle.font().capitalization()
+                                                          == QFont::AllUppercase));
+            writer.writeAttribute("lowercase", toString(blockStyle.font().capitalization()
+                                                          == QFont::AllLowercase));
+'@
+          if (!$st.Contains($saveNeedle)) { throw "ScenarioTemplate lowercase-save patch point not found" }
+          $st = $st.Replace($saveNeedle, $saveReplace)
+          [IO.File]::WriteAllText($scenarioTemplate, $st, [Text.UTF8Encoding]::new($false))
+
           $dictDir = "$env:GITHUB_WORKSPACE\czech-hunspell"
           New-Item -ItemType Directory -Force $dictDir | Out-Null
           Invoke-WebRequest -Uri "https://raw.githubusercontent.com/LibreOffice/dictionaries/master/cs_CZ/cs_CZ.aff" -OutFile "$dictDir\cs_CZ.aff"
@@ -340,12 +482,12 @@ jobs:
           Česká kontrola pravopisu je součástí balíčku.
           V Nastavení > Kontrola pravopisu zvolte Čeština.
           "@ | Set-Content -Encoding UTF8 "$bin\CZ_README.txt"
-          Compress-Archive -Path "$bin\*" -DestinationPath "$env:GITHUB_WORKSPACE\KIT_Scenarist_CZ_VN_SAFE_FIX4.zip" -Force
+          Compress-Archive -Path "$bin\*" -DestinationPath "$env:GITHUB_WORKSPACE\KIT_Scenarist_CZ_VN_SAFE_FIX5.zip" -Force
 
       - name: Upload Czech build
         uses: actions/upload-artifact@v4
         with:
-          name: KIT_Scenarist_CZ_VN_SAFE_FIX4
-          path: KIT_Scenarist_CZ_VN_SAFE_FIX4.zip
+          name: KIT_Scenarist_CZ_VN_SAFE_FIX5
+          path: KIT_Scenarist_CZ_VN_SAFE_FIX5.zip
           if-no-files-found: error
           retention-days: 7
