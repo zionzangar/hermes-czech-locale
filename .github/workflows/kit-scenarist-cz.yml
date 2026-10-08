@@ -405,27 +405,29 @@ jobs:
           # Persist lowercase in .kitss (backward compatible; old uppercase attribute stays supported).
           $scenarioTemplate = "$core\BusinessLayer\ScenarioDocument\ScenarioTemplate.cpp"
           $st = (Get-Content -Raw -Encoding UTF8 $scenarioTemplate).Replace("`r`n", "`n")
-          $loadNeedle = '    m_font.setCapitalization(_blockAttributes.value("uppercase").toString() == "true"`n                             ? QFont::AllUppercase : QFont::MixedCase);'
-          $loadReplace = @'
-              if (_blockAttributes.value("lowercase").toString() == "true") {
-                  m_font.setCapitalization(QFont::AllLowercase);
-              } else {
-                  m_font.setCapitalization(_blockAttributes.value("uppercase").toString() == "true"
+          $loadPattern = 'm_font\.setCapitalization\(_blockAttributes\.value\("uppercase"\)\.toString\(\) == "true"\s*\? QFont::AllUppercase : QFont::MixedCase\);'
+          $loadReplacement = @'
+    if (_blockAttributes.value("lowercase").toString() == "true") {
+        m_font.setCapitalization(QFont::AllLowercase);
+    } else {
+        m_font.setCapitalization(_blockAttributes.value("uppercase").toString() == "true"
                                  ? QFont::AllUppercase : QFont::MixedCase);
-              }
+    }
           '@
-          if (!$st.Contains($loadNeedle)) { throw "ScenarioTemplate lowercase-load patch point not found" }
-          $st = $st.Replace($loadNeedle, $loadReplace)
+          $st2 = [regex]::Replace($st, $loadPattern, $loadReplacement)
+          if ($st2 -eq $st) { throw "ScenarioTemplate lowercase-load patch point not found" }
+          $st = $st2
 
-          $saveNeedle = '            writer.writeAttribute("uppercase", toString(blockStyle.font().capitalization()`n                                                          == QFont::AllUppercase));'
-          $saveReplace = @'
+          $savePattern = 'writer\.writeAttribute\("uppercase",\s*toString\(blockStyle\.font\(\)\.capitalization\(\)\s*== QFont::AllUppercase\)\);'
+          $saveReplacement = @'
             writer.writeAttribute("uppercase", toString(blockStyle.font().capitalization()
                                                           == QFont::AllUppercase));
             writer.writeAttribute("lowercase", toString(blockStyle.font().capitalization()
                                                           == QFont::AllLowercase));
           '@
-          if (!$st.Contains($saveNeedle)) { throw "ScenarioTemplate lowercase-save patch point not found" }
-          $st = $st.Replace($saveNeedle, $saveReplace)
+          $st2 = [regex]::Replace($st, $savePattern, $saveReplacement)
+          if ($st2 -eq $st) { throw "ScenarioTemplate lowercase-save patch point not found" }
+          $st = $st2
           [IO.File]::WriteAllText($scenarioTemplate, $st, [Text.UTF8Encoding]::new($false))
 
           $dictDir = "$env:GITHUB_WORKSPACE\czech-hunspell"
