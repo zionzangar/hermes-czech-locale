@@ -309,10 +309,10 @@ jobs:
 
           $patternDecorationSave = 'if \(m_ui->framingBrackets->isChecked\(\)\) \{[\s\S]*?m_blockStyle\.setPostfix\(""\);\n        \}'
           $replacementDecorationSave = @'
-        const bool standardBracketDecoration =
+                  const bool standardBracketDecoration =
                 (m_blockStyle.prefix() == "(" && m_blockStyle.postfix() == ")");
-        const bool noDecoration = m_blockStyle.prefix().isEmpty() && m_blockStyle.postfix().isEmpty();
-        if (m_blockStyle.type() == ScenarioBlockStyle::SceneCharacters
+                  const bool noDecoration = m_blockStyle.prefix().isEmpty() && m_blockStyle.postfix().isEmpty();
+                  if (m_blockStyle.type() == ScenarioBlockStyle::SceneCharacters
                 && (standardBracketDecoration || noDecoration)) {
             if (m_ui->framingBrackets->isChecked()) {
                 m_blockStyle.setPrefix("(");
@@ -321,7 +321,7 @@ jobs:
                 m_blockStyle.setPrefix("");
                 m_blockStyle.setPostfix("");
             }
-        }
+                  }
           '@
           $td2 = [regex]::Replace($td, $patternDecorationSave, $replacementDecorationSave)
           if ($td2 -eq $td) { throw "Template decoration-save patch point not found" }
@@ -329,13 +329,13 @@ jobs:
 
           $patternDecorationLoad = 'm_ui->framingBrackets->setEnabled\(activatedType == ScenarioBlockStyle::SceneCharacters\);\n        m_ui->framingBrackets->setChecked\(activatedBlockStyle\.hasDecoration\(\)\);'
           $replacementDecorationLoad = @'
-        const bool standardBracketDecoration =
+                  const bool standardBracketDecoration =
                 activatedBlockStyle.prefix() == "(" && activatedBlockStyle.postfix() == ")";
-        const bool noDecoration = activatedBlockStyle.prefix().isEmpty() && activatedBlockStyle.postfix().isEmpty();
-        m_ui->framingBrackets->setEnabled(
+                  const bool noDecoration = activatedBlockStyle.prefix().isEmpty() && activatedBlockStyle.postfix().isEmpty();
+                  m_ui->framingBrackets->setEnabled(
                 activatedType == ScenarioBlockStyle::SceneCharacters
                 && (standardBracketDecoration || noDecoration));
-        m_ui->framingBrackets->setChecked(standardBracketDecoration);
+                  m_ui->framingBrackets->setChecked(standardBracketDecoration);
           '@
           $td2 = [regex]::Replace($td, $patternDecorationLoad, $replacementDecorationLoad)
           if ($td2 -eq $td) { throw "Template decoration-load patch point not found" }
@@ -443,7 +443,7 @@ jobs:
               throw "Czech Hunspell dictionary download failed"
           }
 
-      - name: Build release
+                - name: Build release
         shell: cmd
         working-directory: upstream/src
         run: |
