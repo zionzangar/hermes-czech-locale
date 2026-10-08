@@ -287,22 +287,11 @@ jobs:
           $ex = (Get-Content -Raw -Encoding UTF8 $exporter).Replace("`r`n", "`n")
 
           # VN build: printing/PDF uses the same currently selected template as the editor.
-          $oldExportStyle = @'
-              static ScenarioTemplate exportStyle() {
-                  return ScenarioTemplateFacade::getTemplate(
-                              DataStorageLayer::StorageFacade::settingsStorage()->value(
-                                  "export/style",
-                                  DataStorageLayer::SettingsStorage::ApplicationSettings)
-                              );
-              }
-          '@
-          $newExportStyle = @'
-              static ScenarioTemplate exportStyle() {
-                  return ScenarioTemplateFacade::getTemplate();
-              }
-          '@
-          if (!$ex.Contains($oldExportStyle)) { throw "Exporter current-template patch point not found" }
-          $ex = $ex.Replace($oldExportStyle, $newExportStyle)
+          $patternExportStyle = 'static ScenarioTemplate exportStyle\(\) \{[\s\S]*?^    \}'
+          $replacementExportStyle = "static ScenarioTemplate exportStyle() {`n        return ScenarioTemplateFacade::getTemplate();`n    }"
+          $ex2 = [regex]::Replace($ex, $patternExportStyle, $replacementExportStyle, [Text.RegularExpressions.RegexOptions]::Multiline)
+          if ($ex2 -eq $ex) { throw "Exporter current-template patch point not found" }
+          $ex = $ex2
           $oldScriptTail = "              ScenarioBlockStyle::Transition,`n              ScenarioBlockStyle::Lyrics };`n"
           $newScriptTail = "              ScenarioBlockStyle::Transition,`n              ScenarioBlockStyle::Lyrics,`n              ScenarioBlockStyle::FolderHeader };`n"
           if (!$ex.Contains($oldScriptTail)) { throw "Exporter script-print list patch point not found" }
