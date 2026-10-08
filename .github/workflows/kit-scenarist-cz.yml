@@ -407,12 +407,12 @@ jobs:
           $st = (Get-Content -Raw -Encoding UTF8 $scenarioTemplate).Replace("`r`n", "`n")
           $loadPattern = 'm_font\.setCapitalization\(_blockAttributes\.value\("uppercase"\)\.toString\(\) == "true"\s*\? QFont::AllUppercase : QFont::MixedCase\);'
           $loadReplacement = @'
-    if (_blockAttributes.value("lowercase").toString() == "true") {
-        m_font.setCapitalization(QFont::AllLowercase);
-    } else {
-        m_font.setCapitalization(_blockAttributes.value("uppercase").toString() == "true"
+              if (_blockAttributes.value("lowercase").toString() == "true") {
+                  m_font.setCapitalization(QFont::AllLowercase);
+              } else {
+                  m_font.setCapitalization(_blockAttributes.value("uppercase").toString() == "true"
                                  ? QFont::AllUppercase : QFont::MixedCase);
-    }
+              }
           '@
           $st2 = [regex]::Replace($st, $loadPattern, $loadReplacement)
           if ($st2 -eq $st) { throw "ScenarioTemplate lowercase-load patch point not found" }
