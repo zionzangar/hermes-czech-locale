@@ -443,7 +443,7 @@ jobs:
               throw "Czech Hunspell dictionary download failed"
           }
 
-                - name: Build release
+      - name: Build release
         shell: cmd
         working-directory: upstream/src
         run: |
