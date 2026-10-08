@@ -385,36 +385,36 @@ jobs:
           # Lowercase/uppercase are mutually exclusive and shown in Czech.
           $setupNeedle = "    m_ui->setupUi(this);"
           $setupReplace = @'
-    m_ui->setupUi(this);
-    m_ui->lowercase->setText(QStringLiteral("\u006d\u0061\u006c\u00e1 \u0070\u00ed\u0073\u006d\u0065\u006e\u0061"));
-    connect(m_ui->uppercase, &QCheckBox::toggled, this, [this](bool checked) {
-        if (checked) m_ui->lowercase->setChecked(false);
-    });
-    connect(m_ui->lowercase, &QCheckBox::toggled, this, [this](bool checked) {
-        if (checked) m_ui->uppercase->setChecked(false);
-    });
-'@
+              m_ui->setupUi(this);
+              m_ui->lowercase->setText(QStringLiteral("\u006d\u0061\u006c\u00e1 \u0070\u00ed\u0073\u006d\u0065\u006e\u0061"));
+              connect(m_ui->uppercase, &QCheckBox::toggled, this, [this](bool checked) {
+                  if (checked) m_ui->lowercase->setChecked(false);
+              });
+              connect(m_ui->lowercase, &QCheckBox::toggled, this, [this](bool checked) {
+                  if (checked) m_ui->uppercase->setChecked(false);
+              });
+          '@
           if (!$td.Contains($setupNeedle)) { throw "Template setup patch point not found" }
           $td = $td.Replace($setupNeedle, $setupReplace)
 
           $capSaveNeedle = "        blockFont.setCapitalization(m_ui->uppercase->isChecked() ? QFont::AllUppercase : QFont::MixedCase);"
           $capSaveReplace = @'
-        if (m_ui->lowercase->isChecked()) {
+                  if (m_ui->lowercase->isChecked()) {
             blockFont.setCapitalization(QFont::AllLowercase);
-        } else if (m_ui->uppercase->isChecked()) {
+                  } else if (m_ui->uppercase->isChecked()) {
             blockFont.setCapitalization(QFont::AllUppercase);
-        } else {
+                  } else {
             blockFont.setCapitalization(QFont::MixedCase);
-        }
-'@
+                  }
+          '@
           if (!$td.Contains($capSaveNeedle)) { throw "Template capitalization-save patch point not found" }
           $td = $td.Replace($capSaveNeedle, $capSaveReplace)
 
           $capLoadNeedle = "        m_ui->uppercase->setChecked(activatedBlockStyle.font().capitalization() == QFont::AllUppercase);"
           $capLoadReplace = @'
-        m_ui->uppercase->setChecked(activatedBlockStyle.font().capitalization() == QFont::AllUppercase);
-        m_ui->lowercase->setChecked(activatedBlockStyle.font().capitalization() == QFont::AllLowercase);
-'@
+                  m_ui->uppercase->setChecked(activatedBlockStyle.font().capitalization() == QFont::AllUppercase);
+                  m_ui->lowercase->setChecked(activatedBlockStyle.font().capitalization() == QFont::AllLowercase);
+          '@
           if (!$td.Contains($capLoadNeedle)) { throw "Template capitalization-load patch point not found" }
           $td = $td.Replace($capLoadNeedle, $capLoadReplace)
           [IO.File]::WriteAllText($templateDialog, $td, [Text.UTF8Encoding]::new($false))
@@ -424,13 +424,13 @@ jobs:
           $st = (Get-Content -Raw -Encoding UTF8 $scenarioTemplate).Replace("`r`n", "`n")
           $loadNeedle = '    m_font.setCapitalization(_blockAttributes.value("uppercase").toString() == "true"`n                             ? QFont::AllUppercase : QFont::MixedCase);'
           $loadReplace = @'
-    if (_blockAttributes.value("lowercase").toString() == "true") {
-        m_font.setCapitalization(QFont::AllLowercase);
-    } else {
-        m_font.setCapitalization(_blockAttributes.value("uppercase").toString() == "true"
+              if (_blockAttributes.value("lowercase").toString() == "true") {
+                  m_font.setCapitalization(QFont::AllLowercase);
+              } else {
+                  m_font.setCapitalization(_blockAttributes.value("uppercase").toString() == "true"
                                  ? QFont::AllUppercase : QFont::MixedCase);
-    }
-'@
+              }
+          '@
           if (!$st.Contains($loadNeedle)) { throw "ScenarioTemplate lowercase-load patch point not found" }
           $st = $st.Replace($loadNeedle, $loadReplace)
 
@@ -440,7 +440,7 @@ jobs:
                                                           == QFont::AllUppercase));
             writer.writeAttribute("lowercase", toString(blockStyle.font().capitalization()
                                                           == QFont::AllLowercase));
-'@
+          '@
           if (!$st.Contains($saveNeedle)) { throw "ScenarioTemplate lowercase-save patch point not found" }
           $st = $st.Replace($saveNeedle, $saveReplace)
           [IO.File]::WriteAllText($scenarioTemplate, $st, [Text.UTF8Encoding]::new($false))
