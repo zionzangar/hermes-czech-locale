@@ -1859,7 +1859,7 @@ const cs = ({
         'speed-gated-quality':
           'Kvalitnější model se do tohoto počítače vejde, ale kvůli propustnosti paměti by odpovídal příliš pomalu — toto je nejlepší model, který zůstává rychlý.',
         'fastest-resident':
-          'Žádný model na tomto hardwaru nedosáhne plné rychlosti; tento se jí nejvíce blíží a přitom běží celý v paměti grafické karty.'} as Record<string, string>,
+          'Žádný model na tomto hardwaru nedosáhne plné rychlosti; tento se jí nejvíce blíží a přitom běží celý v paměti grafické karty.'},
       noRecommendationTitle: 'Pro tento počítač není dostupné automatické doporučení',
       noRecommendationDetail:
         'Automatické nastavení vyžaduje prověřený model, který se celý vejde do grafické nebo sdílené paměti. Stále můžete vybrat model níže nebo procházet další modely.',
