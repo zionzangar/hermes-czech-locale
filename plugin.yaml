@@ -1,0 +1,7 @@
+name: hermes-czech-locale
+version: 1.0.0
+description: Czech language pack for Hermes, based on the manually reviewed zionzangar Czech catalog.
+provides_locales:
+  - id: cs
+    endonym: Čeština
+    rtl: false
