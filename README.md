@@ -1,51 +1,79 @@
-# Czech locale for Hermes Desktop
+# Čeština pro Hermes
 
-Community-maintained Czech (`cs`) translation catalog for the native Hermes Desktop application.
+Instalovatelný český jazykový balíček pro Hermes Agent / Hermes Desktop.
 
-This repository contains a complete, manually reviewed Czech translation of the Desktop `Translations` tree. It is intended both as a reference implementation for [NousResearch/hermes-agent#102178](https://github.com/NousResearch/hermes-agent/issues/102178) and as improved Czech translation material for [NousResearch/hermes-agent#56521](https://github.com/NousResearch/hermes-agent/pull/56521).
+Balíček používá nativní rozhraní jazykových pluginů zavedené v Hermes 0.22. Základem je ručně revidovaný český katalog v `apps/desktop/src/i18n/cs.ts`; nové řetězce přidané do aktuálního Hermesu jsou doplněny v `locales/cs.desktop.yaml`.
 
-## Status
+## Aktuální stav
 
-- Source file: `apps/desktop/src/i18n/cs.ts`
-- Based on upstream English catalog blob: `65c7a3b44e5960af5be0f5e4f7229a94b8168031`
-- Translation entries: 4,564
-- Missing entries against that source revision: 0
-- Extra entries against that source revision: 0
-- TypeScript syntax, locale structure, interpolation variables, and function parameters validated
-- SHA-256 of `cs.ts`: `98796b2dd33bbe3987ca47285fdb399d32b6e3a88b3ac3bf8d3d98223c436674`
+- ID pluginu: `hermes-czech-locale`
+- Jazyk: `cs` — **Čeština**
+- Aktuální sada klíčů Hermes Desktop: **5 105**
+- Pokrytí aktuální sady Desktopu: **5 105 / 5 105**
+- Ručně revidovaný základ: **4 564** položek
+- Nově doplněné položky pro současný Hermes: **616**
+- Neznámé klíče v doplňku: **0**
+- Chybějící aktuální klíče Desktopu: **0**
+- 75 starších položek v původním katalogu je zachováno pro zpětnou kompatibilitu; současný Hermes je jednoduše nepoužije.
 
-The translation uses `defineLocale()`, so future keys that are not yet present can fall back to English when used inside a compatible Hermes source tree.
+Plugin nepřepisuje soubory Hermesu a přežije běžné aktualizace aplikace.
 
-## Important
+## Instalace
 
-This is currently a **translation catalog, not an installable Desktop plugin**. Hermes Desktop does not yet expose an API that allows a plugin to register a locale for the core application UI.
-
-Do not replace a stock Hermes Desktop build with a locally rebuilt application solely to install this file unless you understand how that interacts with `hermes update`.
-
-The proposed `registerAppLocale()` capability in issue #102178 would allow this catalog to become an update-safe language-pack plugin stored outside the application build.
-
-## Intended future installation
-
-If the proposed locale extension point is accepted, the target shape would be a normal disk plugin under:
-
-```text
-$HERMES_HOME/desktop-plugins/locale-cs/plugin.js
+```powershell
+hermes plugins install https://github.com/zionzangar/hermes-czech-locale
+hermes config set display.language cs
 ```
 
-The language pack would register `cs`, appear as **Čeština** in the normal language picker, and fall back to the built-in English catalog for any missing future keys.
+Potom restartujte Hermes Desktop a běžící gateway/TUI. Pokud je desktopová část pluginu po instalaci vypnutá, zapněte ji v **Nastavení → Pluginy**.
 
-## Maintenance
+Návrat do angličtiny:
 
-Hermes Desktop evolves quickly. Updates to the English catalog should be compared against this file before claiming compatibility with a newer Hermes revision.
+```powershell
+hermes config set display.language en
+```
 
-When updating the translation:
+Odinstalace:
 
-1. Compare the current upstream `en.ts` and `types.ts` with the recorded base revision.
-2. Add or update Czech entries while preserving function parameters and interpolation behavior.
-3. Run the Desktop typecheck and i18n tests.
-4. Update the base commit, entry counts, and SHA-256 recorded above.
+```powershell
+hermes plugins uninstall hermes-czech-locale
+```
+
+## Struktura
+
+```text
+hermes-czech-locale/
+├── plugin.yaml
+├── locales/
+│   ├── cs.yaml
+│   └── cs.desktop.yaml
+├── desktop/
+│   └── plugin.js
+└── apps/desktop/src/i18n/cs.ts
+```
+
+- `plugin.yaml` registruje jazyk `cs` v nativním systému Hermes.
+- `desktop/plugin.js` převádí ručně revidovaný katalog do runtime Desktop pluginu.
+- `locales/cs.desktop.yaml` doplňuje nové řetězce aktuální verze Hermesu.
+- `locales/cs.yaml` obsahuje základní překlady sdílené Python/gateway vrstvou.
+- `apps/desktop/src/i18n/cs.ts` zůstává zdrojovým ručně revidovaným katalogem.
+
+## Rozsah překladu
+
+Desktopové statické rozhraní je proti aktuálnímu exportu `locales/_keys.desktop.json` pokryto celé. Python/gateway katalog je zatím částečný a TUI bez vlastního českého souboru používá pro nepřeložené řetězce anglický fallback.
+
+Odpovědi modelu, výstupy nástrojů, protokoly a názvy lomítkových příkazů jazykový balíček nemění — to je vlastnost systému jazykových balíčků Hermes.
+
+## Údržba
+
+Při nové verzi Hermesu:
+
+1. porovnat `locales/_keys.desktop.json` s českým základem a doplňkem,
+2. přeložit nové klíče,
+3. zachovat poziční placeholdery `{0}`, `{1}` u funkčních Desktop řetězců,
+4. spustit `hermes plugins validate` nad nainstalovaným balíčkem,
+5. zvýšit verzi pluginu, pokud se mění distribuovaný balíček.
 
 ## License
 
-Released under the MIT License, matching the upstream Hermes Agent project.
-
+MIT License, stejně jako upstream Hermes Agent.
