@@ -1,0 +1,22 @@
+# Czech core language pack.
+# The Desktop catalog is complete in desktop/plugin.js + locales/cs.desktop.yaml.
+approval:
+  allowed_once: "      ✓ Povoleno jednou"
+  allowed_session: "      ✓ Povoleno pro tuto relaci"
+  allowed_always: "      ✓ Přidáno do trvalého seznamu povolených příkazů"
+  denied: "      ✗ Zamítnuto"
+  cancelled: "      ✗ Zrušeno"
+  blocklist_message: "Tento příkaz je na nepodmíněném seznamu blokovaných příkazů a nelze jej povolit."
+gateway:
+  goal_cleared: "✓ Cíl vymazán."
+  no_active_goal: "Žádný aktivní cíl."
+  model:
+    error_prefix: "Chyba: {error}"
+    provider_label: "Poskytovatel: {provider}"
+    context_label: "Kontext: {tokens} tokenů"
+    max_output_label: "Maximální výstup: {tokens} tokenů"
+    warning_prefix: "Varování: {warning}"
+  profile:
+    header: "👤 **Profil:** `{profile}`"
+    home: "📂 **Domovská složka:** `{home}`"
+    plain: "Profil: {profile}\nDomovská složka: {home}"
